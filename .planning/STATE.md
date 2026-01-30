@@ -28,7 +28,7 @@ Windows-only desktop application (MTGO is Windows-only).
 ## Current Position
 
 **Active Phase:** Phase 1 of 7 (Capture Infrastructure & Proof of Concept)
-**Active Plan:** 01-03 (complete)
+**Active Plan:** 01-04A (complete)
 **Status:** In progress
 **Progress Bar:** █░░░░░░░░░░░░░░ 14% (1/7 phases complete)
 
@@ -36,8 +36,8 @@ Windows-only desktop application (MTGO is Windows-only).
 
 ## Performance Metrics
 
-- Phase 1 Plans: 7 total, 3 completed (01-01, 01-02, 01-03)
-- Phase 1 Progress: 43% (3/7 plans)
+- Phase 1 Plans: 7 total, 4 completed (01-01, 01-02, 01-03, 01-04A)
+- Phase 1 Progress: 57% (4/7 plans)
 - Total Project Progress: 14% (1/7 phases complete)
 - Total Project Progress: 0% (0/7 phases complete)
 
@@ -46,7 +46,7 @@ Windows-only desktop application (MTGO is Windows-only).
 - 01-01: Tauri initialization ✓ (completed 2026-01-30)
 - 01-02: Admin/WinDivert detection ✓ (completed 2026-01-30)
 - 01-03: WinDivert handle management ✓ (completed 2026-01-30)
-- 01-04A: Capture status UI (pending)
+- 01-04A: Capture status UI ✓ (completed 2026-01-30)
 - 01-04B: Start/stop capture commands (pending)
 - 01-05: Proof of concept (pending)
 
@@ -68,6 +68,9 @@ Windows-only desktop application (MTGO is Windows-only).
 | WinDivert over libpcap for Windows | Captures localhost traffic better than libpcap (MTGO may use loopback) | Required for Windows capture |
 | WinDivert 0.7.0-beta.4 over 1.4 | Version 1.4 not available on crates.io, use latest beta | windivert = "0.7.0-beta.4" in Cargo.toml |
 | tauri-plugin-opener over shell-open feature | shell-open feature removed in Tauri 2.0, moved to plugin | Added tauri-plugin-opener = "2.0" |
+| Thread-safe shared state via Arc<Mutex<>> | Commands run in async contexts and may be called concurrently from frontend | Safe access to capture state without race conditions |
+| ISO 8601 timestamps for frontend | Standard format that JavaScript Date() can parse natively | Easy frontend integration with `new Date(isoString)` |
+| Placeholder implementations for capture loop | Full implementation requires WinDivert handle management (Plan 01-03) and capture loop logic (Plan 05) | Commands return status but don't start actual capture; ready for frontend testing |
 
 ### Research Summary
 
@@ -115,7 +118,7 @@ Phase 7: Advanced Features (MTGOSDK integration, advanced analytics)
 
 - [ ] Verify project compilation on Windows with `cargo check --target x86_64-pc-windows-msvc`
 - [x] Execute plan 01-03: WinDivert handle and filter management
-- [ ] Execute plan 01-04A: Build capture status UI
+- [x] Execute plan 01-04A: Build capture status UI
 - [ ] Execute plan 01-04B: Start/stop capture commands
 - [ ] Execute plan 01-05: Proof of concept with actual MTGO traffic
 
@@ -129,12 +132,13 @@ Phase 7: Advanced Features (MTGOSDK integration, advanced analytics)
 
 ## Session Continuity
 
-**Last session:** 2026-01-30 17:37
-**Stopped at:** Completed 01-03-PLAN.md (WinDivert Handle and Filter Management)
+**Last session:** 2026-01-30 17:45
+**Stopped at:** Completed 01-04A-PLAN.md (Capture Status Types and Tauri Commands)
 **Resume file:** None
 
 **Commits in last session:**
-- 7945e7f: feat(01-03): create WinDivert handle and filter management module
+- abc92f0: feat(01-04A): define capture status types and Tauri commands
+- 141d191: feat(01-04A): register capture commands with shared state
 
 **Deviations handled in 01-01:**
 - Fixed windivert version from 1.4 to 0.7.0-beta.4 (Rule 3 - blocking issue)
@@ -144,7 +148,10 @@ Phase 7: Advanced Features (MTGOSDK integration, advanced analytics)
 **Deviations handled in 01-03:**
 - None (plan executed exactly as written)
 
-**Ready to continue:** Execute plan 01-04A (Capture Status UI) or 01-04B (Start/Stop Capture Commands)
+**Deviations handled in 01-04A:**
+- None (plan executed exactly as written)
+
+**Ready to continue:** Execute plan 01-04B (Start/Stop Capture Commands) or 01-05 (Proof of Concept)
 
 ---
 
@@ -178,8 +185,6 @@ Phase 7: Advanced Features (MTGOSDK integration, advanced analytics)
 ### Next Actions
 
 1. Install Rust toolchain in development environment
-2. Execute plan 01-03: WinDivert handle and filter management
-3. Execute plan 01-04A: Build capture status UI
-4. Execute plan 01-04B: Start/stop capture commands
-5. Execute plan 01-05: Proof of concept with actual MTGO traffic
-6. Test on Windows with actual MTGO client to verify admin detection and driver checks
+2. Execute plan 01-04B: Start/stop capture commands (frontend UI integration)
+3. Execute plan 01-05: Proof of concept with actual MTGO traffic
+4. Test on Windows with actual MTGO client to verify admin detection and driver checks
