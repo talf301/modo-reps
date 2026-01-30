@@ -1,6 +1,6 @@
 # State - MTGO Replay Capture
 
-**Last Updated:** 2026-01-30 17:45
+**Last Updated:** 2026-01-30 17:58
 **Current Phase:** Phase 1 of 7 (Capture Infrastructure & Proof of Concept)
 
 ---
@@ -28,7 +28,7 @@ Windows-only desktop application (MTGO is Windows-only).
 ## Current Position
 
 **Active Phase:** Phase 1 of 7 (Capture Infrastructure & Proof of Concept)
-**Active Plan:** 01-04A (complete)
+**Active Plan:** 01-04B (complete)
 **Status:** In progress
 **Progress Bar:** █░░░░░░░░░░░░░░ 14% (1/7 phases complete)
 
@@ -36,8 +36,8 @@ Windows-only desktop application (MTGO is Windows-only).
 
 ## Performance Metrics
 
-- Phase 1 Plans: 7 total, 4 completed (01-01, 01-02, 01-03, 01-04A)
-- Phase 1 Progress: 57% (4/7 plans)
+- Phase 1 Plans: 6 total, 5 completed (01-01, 01-02, 01-03, 01-04A, 01-04B)
+- Phase 1 Progress: 83% (5/6 plans)
 - Total Project Progress: 14% (1/7 phases complete)
 - Total Project Progress: 0% (0/7 phases complete)
 
@@ -46,8 +46,8 @@ Windows-only desktop application (MTGO is Windows-only).
 - 01-01: Tauri initialization ✓ (completed 2026-01-30)
 - 01-02: Admin/WinDivert detection ✓ (completed 2026-01-30)
 - 01-03: WinDivert handle management ✓ (completed 2026-01-30)
-- 01-04A: Capture status UI ✓ (completed 2026-01-30)
-- 01-04B: Start/stop capture commands (pending)
+- 01-04A: Capture status types and Tauri commands ✓ (completed 2026-01-30)
+- 01-04B: Capture status UI component ✓ (completed 2026-01-30)
 - 01-05: Proof of concept (pending)
 
 ---
@@ -118,8 +118,8 @@ Phase 7: Advanced Features (MTGOSDK integration, advanced analytics)
 
 - [ ] Verify project compilation on Windows with `cargo check --target x86_64-pc-windows-msvc`
 - [x] Execute plan 01-03: WinDivert handle and filter management
-- [x] Execute plan 01-04A: Build capture status UI
-- [ ] Execute plan 01-04B: Start/stop capture commands
+- [x] Execute plan 01-04A: Build capture status types and Tauri commands
+- [x] Execute plan 01-04B: Capture status UI component
 - [ ] Execute plan 01-05: Proof of concept with actual MTGO traffic
 
 ---
@@ -132,13 +132,15 @@ Phase 7: Advanced Features (MTGOSDK integration, advanced analytics)
 
 ## Session Continuity
 
-**Last session:** 2026-01-30 17:45
-**Stopped at:** Completed 01-04A-PLAN.md (Capture Status Types and Tauri Commands)
+**Last session:** 2026-01-30 17:58
+**Stopped at:** Completed 01-04B-PLAN.md (Capture Status UI Component)
 **Resume file:** None
 
 **Commits in last session:**
 - abc92f0: feat(01-04A): define capture status types and Tauri commands
 - 141d191: feat(01-04A): register capture commands with shared state
+- 0c50648: feat(01-04B): create capture status UI component
+- c32a91f: feat(01-04B): integrate capture status component into main app
 
 **Deviations handled in 01-01:**
 - Fixed windivert version from 1.4 to 0.7.0-beta.4 (Rule 3 - blocking issue)
@@ -151,7 +153,11 @@ Phase 7: Advanced Features (MTGOSDK integration, advanced analytics)
 **Deviations handled in 01-04A:**
 - None (plan executed exactly as written)
 
-**Ready to continue:** Execute plan 01-04B (Start/Stop Capture Commands) or 01-05 (Proof of Concept)
+**Deviations handled in 01-04B:**
+- Fixed TypeScript/React to vanilla JavaScript adaptation (Rule 3 - blocking issue)
+- Fixed module scoping issue with event listeners (Rule 1 - bug)
+
+**Ready to continue:** Execute plan 01-05 (Proof of Concept)
 
 ---
 
@@ -184,7 +190,7 @@ Phase 7: Advanced Features (MTGOSDK integration, advanced analytics)
 
 ### Next Actions
 
-1. Install Rust toolchain in development environment
-2. Execute plan 01-04B: Start/stop capture commands (frontend UI integration)
-3. Execute plan 01-05: Proof of concept with actual MTGO traffic
-4. Test on Windows with actual MTGO client to verify admin detection and driver checks
+1. Execute plan 01-05: Proof of concept with actual MTGO traffic
+2. Test on Windows with actual MTGO client to verify admin detection and driver checks
+3. Verify capture status UI displays correctly on Windows
+4. Test start/stop capture functionality with actual MTGO traffic
