@@ -4,36 +4,36 @@
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri App</title>
-    <script type="module" src="/main.js" defer></script>
+    <title>MTGO Replay Capture</title>
+    <script type="module" src="/capture-status.js" defer></script>
   </head>
 
   <body>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
+    <main class="container" style="padding: 20px;">
+      <h1>MTGO Replay Capture</h1>
 
-      <div class="row">
-        <a href="https://tauri.app" target="_blank">
-          <img src="/assets/tauri.svg" class="logo tauri" alt="Tauri logo" />
-        </a>
-        <a
-          href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"
-          target="_blank"
+      <!-- Admin and Driver Status Section -->
+      <div id="admin-status" style="margin-bottom: 20px; padding: 10px; border: 1px solid #ccc;"></div>
+
+      <!-- Capture Controls Section -->
+      <div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ccc;">
+        <h2>Capture Control</h2>
+        <button
+          id="start-capture-btn"
+          style="padding: 8px 16px; margin-right: 10px;"
         >
-          <img
-            src="/assets/javascript.svg"
-            class="logo vanilla"
-            alt="JavaScript logo"
-          />
-        </a>
+          Start Capture
+        </button>
+        <button
+          id="stop-capture-btn"
+          style="padding: 8px 16px;"
+        >
+          Stop Capture
+        </button>
       </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
 
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg"></p>
+      <!-- Capture Status Section -->
+      <div id="capture-status" style="padding: 10px; border: 1px solid #ccc;"></div>
     </main>
   </body>
 </html>
