@@ -26,7 +26,7 @@ The roadmap follows a layered architecture approach: capture infrastructure firs
 1. User can start/stop packet capture from the desktop application
 2. Capture shows MTGO game-related traffic (verified with actual MTGO client running)
 3. Application detects and handles missing administrator privileges with clear error messages
-4. WinDivert driver installation is verified (or bundled with installer)
+4. WinDivert driver installation is verified at startup with clear error message and download link if missing
 5. BPF filter successfully filters MTGO server traffic, reducing captured packets to < 10MB/hour
 
 **Risk Flags:**
@@ -42,13 +42,14 @@ The roadmap follows a layered architecture approach: capture infrastructure firs
 
 **Avoids:** Loopback traffic capture blindness, platform-specific capture failures
 
-**Plans:** 5 plans in 3 waves
+**Plans:** 6 plans in 3 waves
 
 **Plan List:**
 - [ ] 01-01-PLAN.md — Initialize Tauri 2.0 project with required dependencies (windivert, tokio, windows, thiserror, tracing, serde)
-- [ ] 01-02-PLAN.md — Implement administrator privilege detection with structured error types
-- [ ] 01-03-PLAN.md — Create WinDivert handle and filter management module
-- [ ] 01-04-PLAN.md — Build basic capture status UI with Tauri command integration
+- [ ] 01-02-PLAN.md — Implement administrator privilege and WinDivert driver detection with structured error types
+- [ ] 01-03-PLAN.md — Create WinDivert handle and filter management module with BPF refinement analysis
+- [ ] 01-04A-PLAN.md — Define capture status types and Tauri commands for capture control (backend)
+- [ ] 01-04B-PLAN.md — Build basic capture status UI with admin/driver display and start/stop buttons (frontend)
 - [ ] 01-05-PLAN.md — Implement async packet capture loop with bounded MPSC channels and real-time status updates (checkpoint:human-verify)
 
 ---
