@@ -125,6 +125,24 @@ pub fn capture_loop(
                             );
                         }
 
+                        // Log traffic volume against 10MB/hour threshold (Success Criterion #5)
+                        // 10MB/hour = 10 * 1024 * 1024 bytes / 3600 seconds ≈ 2913 bytes/s
+                        const MAX_BYTES_PER_SECOND: f64 = 10.0 * 1024.0 * 1024.0 / 3600.0;
+
+                        if stats.packet_count % 600 == 0 {  // Log every 600 packets (≈ every 6 seconds at typical rates)
+                            if throughput > MAX_BYTES_PER_SECOND {
+                                warn!(
+                                    "Traffic volume {:.2} bytes/s exceeds 10MB/hour threshold ({:.2} bytes/s). Filter: '{}'. Consider refining filter to specific MTGO servers.",
+                                    throughput, MAX_BYTES_PER_SECOND, crate::capture::filter::MTGO_FILTER
+                                );
+                            } else {
+                                info!(
+                                    "Traffic volume {:.2} bytes/s within 10MB/hour threshold ({:.2} bytes/s). Filter: '{}'",
+                                    throughput, MAX_BYTES_PER_SECOND, crate::capture::filter::MTGO_FILTER
+                                );
+                            }
+                        }
+
                         bytes_at_last_check = stats.bytes_captured;
                         last_throughput_check = Instant::now();
                     }
