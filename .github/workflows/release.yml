@@ -1,0 +1,135 @@
+name: Build and Release Windows
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag version to release (e.g., v0.1.0)'
+        required: true
+        default: 'v0.1.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows x64
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: x86_64-pc-windows-msvc
+          override: true
+      
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Cache Node dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            src/node_modules
+            ~\AppData\Local\pnpm\store
+            ~\AppData\Local\yarn\cache
+            ~\AppData\Roaming\npm-cache
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json', '**/yarn.lock', '**/pnpm-lock.yaml') }}
+      
+      - name: Install frontend dependencies
+        working-directory: src
+        run: npm ci
+      
+      - name: Build Tauri app
+        run: cargo tauri build --target x86_64-pc-windows-msvc
+        env:
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mtgo-replay-windows-x64
+          path: |
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/MTGO_Replay_Capture_*.exe
+          retention-days: 7
+
+  create-release:
+    name: Create GitHub Release
+    needs: build-windows
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: mtgo-replay-windows-x64
+          path: ./artifacts
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          name: MTGO Replay Capture ${{ github.event.inputs.tag }}
+          body: |
+            ## Windows Build
+            
+            This release includes the Windows x64 executable for Phase 1 testing.
+            
+            ### Testing Instructions
+            
+            1. Download `MTGO_Replay_Capture_*.exe`
+            2. Right-click and run as Administrator
+            3. Verify admin privileges and WinDivert driver status
+            4. Test packet capture with any network traffic
+            5. Check logs for capture statistics
+            
+            ### Requirements
+            
+            - Windows 10 or 11
+            - Administrator privileges required
+            - WinDivert 2.2.2-A driver (download from https://reqrypt.org/windivert.html)
+            
+            ### What to Test
+            
+            - [ ] Admin privilege detection shows correctly
+            - [ ] WinDivert driver detected or error message displayed
+            - [ ] Start/Stop capture buttons work
+            - [ ] Packet count increases during capture
+            - [ ] No errors in console/logs
+            
+            ### Feedback Needed
+            
+            Please report results: 
+            - Capture working? (Yes/No)
+            - Packet count increasing? (Yes/No)
+            - Any errors or issues?
+            
+          files: ./artifacts/*.exe
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
