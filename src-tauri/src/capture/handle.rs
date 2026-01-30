@@ -1,0 +1,108 @@
+#[cfg(target_os = "windows")]
+use windivert::{layer::Network, WinDivert, WinDivertFlags};
+use crate::capture::filter::MTGO_FILTER;
+use crate::common::error::CaptureError;
+use std::sync::Arc;
+
+/// Wrapper for WinDivert handle with automatic cleanup
+///
+/// Uses Arc<WinDivert<Network>> to allow sharing handle between capture loop
+/// and control commands without worrying about lifetime issues.
+pub struct CaptureHandle {
+    inner: Arc<WinDivert<Network>>,
+}
+
+impl CaptureHandle {
+    /// Create a new WinDivert handle for capturing MTGO traffic
+    ///
+    /// This function initializes WinDivert with the MTGO traffic filter and
+    /// sets up packet sniffing mode (copies packets without dropping them).
+    ///
+    /// # Returns
+    /// Ok(CaptureHandle) if handle created successfully
+    /// Err(CaptureError) if initialization fails (e.g., insufficient privileges, driver blocked)
+    ///
+    /// # Note
+    /// Caller must verify administrator privileges before calling this function.
+    /// See `capture::admin::is_running_as_admin()`.
+    ///
+    /// The WinDivert builder validates the filter syntax at creation time,
+    /// catching filter syntax errors during development (Pitfall 4).
+    #[cfg(target_os = "windows")]
+    pub fn new() -> Result<Self, CaptureError> {
+        // Basic syntax validation: check for balanced parentheses
+        let mut paren_count = 0;
+        for ch in MTGO_FILTER.chars() {
+            match ch {
+                '(' => paren_count += 1,
+                ')' => paren_count -= 1,
+                _ => {}
+            }
+        }
+        if paren_count != 0 {
+            return Err(CaptureError::CaptureLoopError(
+                format!("Unbalanced parentheses in filter: {}", MTGO_FILTER)
+            ));
+        }
+
+        // Build WinDivert handle with typestate pattern
+        let handle = WinDivert::builder()
+            .layer(Network::Network)  // WINDIVERT_LAYER_NETWORK
+            .filter(MTGO_FILTER)      // Apply MTGO traffic filter
+            .flags(WinDivertFlags::SNIFF)  // Packet sniffing: copy, don't drop packets
+            .build()?;  // This validates filter syntax and creates handle
+
+        Ok(CaptureHandle {
+            inner: Arc::new(handle),
+        })
+    }
+
+    /// Get a reference to the inner WinDivert handle
+    ///
+    /// This is used by the capture loop to receive packets.
+    #[cfg(target_os = "windows")]
+    pub fn inner(&self) -> &Arc<WinDivert<Network>> {
+        &self.inner
+    }
+
+    /// Clone the handle (increment Arc refcount)
+    ///
+    /// This allows sharing the handle between tasks.
+    #[cfg(target_os = "windows")]
+    pub fn clone_handle(&self) -> Arc<WinDivert<Network>> {
+        Arc::clone(&self.inner)
+    }
+}
+
+/// Ensure WinDivert handle is properly closed when dropped
+///
+/// The WinDivert<Network> type implements Drop, so closing the Arc
+/// when the last reference is dropped automatically closes the WinDivert handle.
+impl Drop for CaptureHandle {
+    fn drop(&mut self) {
+        #[cfg(target_os = "windows")]
+        {
+            // The inner Arc<WinDivert<Network>> will automatically close
+            // when this CaptureHandle is dropped and the Arc refcount reaches zero.
+            // No manual cleanup needed - RAII handles it.
+        }
+    }
+}
+
+/// Stub implementation for non-Windows targets (development only)
+#[cfg(not(target_os = "windows"))]
+pub struct CaptureHandle;
+
+#[cfg(not(target_os = "windows"))]
+impl CaptureHandle {
+    pub fn new() -> Result<Self, CaptureError> {
+        Ok(CaptureHandle)
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+impl Drop for CaptureHandle {
+    fn drop(&mut self) {
+        // Stub implementation - no cleanup needed on non-Windows
+    }
+}
