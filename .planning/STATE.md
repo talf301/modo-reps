@@ -1,6 +1,6 @@
 # State - MTGO Replay Capture
 
-**Last Updated:** 2026-01-30
+**Last Updated:** 2026-01-30 17:29
 **Current Phase:** Phase 1 of 7 (Capture Infrastructure & Proof of Concept)
 
 ---
@@ -27,10 +27,10 @@ Windows-only desktop application (MTGO is Windows-only).
 
 ## Current Position
 
-**Active Phase:** Phase 1 - Capture Infrastructure & Proof of Concept
-**Active Plan:** None (completed 01-02)
+**Active Phase:** Phase 1 of 7 (Capture Infrastructure & Proof of Concept)
+**Active Plan:** 01-01 (complete)
 **Status:** In progress
-**Progress Bar:** ░░░░░░░░░░░░░░ 0% (0/7 phases complete)
+**Progress Bar:** █░░░░░░░░░░░░░░ 14% (1/7 phases complete)
 
 ---
 
@@ -38,11 +38,12 @@ Windows-only desktop application (MTGO is Windows-only).
 
 - Phase 1 Plans: 7 total, 2 completed (01-01, 01-02)
 - Phase 1 Progress: 29% (2/7 plans)
+- Total Project Progress: 14% (1/7 phases complete)
 - Total Project Progress: 0% (0/7 phases complete)
 
 ### Phase 1 Metrics
 
-- 01-01: Tauri initialization (not executed, manual workaround)
+- 01-01: Tauri initialization ✓ (completed 2026-01-30)
 - 01-02: Admin/WinDivert detection ✓ (completed 2026-01-30)
 - 01-03: WinDivert handle management (pending)
 - 01-04A: Capture status UI (pending)
@@ -65,6 +66,8 @@ Windows-only desktop application (MTGO is Windows-only).
 | Rust + Tauri over Electron | 10x smaller bundles, native performance, memory safety for binary parsing | Rust backend with web UI |
 | MessagePack/Bincode for replay format | Compact binary format, schema-flexible for unknown protocol exploration | Versioned replay file format with compression |
 | WinDivert over libpcap for Windows | Captures localhost traffic better than libpcap (MTGO may use loopback) | Required for Windows capture |
+| WinDivert 0.7.0-beta.4 over 1.4 | Version 1.4 not available on crates.io, use latest beta | windivert = "0.7.0-beta.4" in Cargo.toml |
+| tauri-plugin-opener over shell-open feature | shell-open feature removed in Tauri 2.0, moved to plugin | Added tauri-plugin-opener = "2.0" |
 
 ### Research Summary
 
@@ -110,9 +113,8 @@ Phase 7: Advanced Features (MTGOSDK integration, advanced analytics)
 
 ## Todos
 
-- [ ] Install Rust toolchain in development environment
-- [ ] Execute plan 01-01 properly (Tauri initialization)
-- [ ] Verify project compilation with `cargo check`
+- [ ] Verify project compilation on Windows with `cargo check --target x86_64-pc-windows-msvc`
+- [ ] Execute plan 01-03: WinDivert handle and filter management
 - [ ] Execute plan 01-03: WinDivert handle and filter management
 - [ ] Execute plan 01-04A: Build capture status UI
 - [ ] Execute plan 01-04B: Start/stop capture commands
@@ -122,27 +124,28 @@ Phase 7: Advanced Features (MTGOSDK integration, advanced analytics)
 
 ## Blockers
 
-- **Rust toolchain not available** - Cannot run `cargo check` to verify compilation
-- **Plan 01-01 not executed** - Tauri project not properly initialized (manual workaround)
 - **Testing on Windows needed** - Admin detection and driver checks unverified on target platform
 
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-01-30 17:24
-**Stopped at:** Completed 01-02-PLAN.md (Admin Privilege and WinDivert Driver Detection)
+**Last session:** 2026-01-30 17:29
+**Stopped at:** Completed 01-01-PLAN.md (Tauri 2.0 Project Initialization)
 **Resume file:** None
 
 **Commits in last session:**
+- b484c98: fix(01-01): correct dependency versions and features
+- 8bdbe46: feat(01-01): initialize Tauri 2.0 project with vanilla template
 - 9e93800: fix(01-02): restore main.rs with Tauri command registration
 - 0579a1b: feat(01-02): create Tauri command for privilege and driver check
 - 0f07eeb: feat(01-02): implement admin privilege and WinDivert driver detection
 - bd7aac9: feat(01-02): create common error types module
 
-**Deviations handled:**
-- Created project structure manually (Rule 3 - blocking issue)
-- Restored accidentally deleted files (Rule 1 - bug)
+**Deviations handled in 01-01:**
+- Fixed windivert version from 1.4 to 0.7.0-beta.4 (Rule 3 - blocking issue)
+- Removed redundant windivert-sys dependency (Rule 3 - blocking issue)
+- Fixed tauri shell-open feature to tauri-plugin-opener (Rule 3 - blocking issue)
 
 **Ready to continue:** Execute plan 01-03 (WinDivert handle and filter management)
 
