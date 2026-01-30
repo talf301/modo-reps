@@ -1,8 +1,22 @@
 use crate::capture::admin::{is_running_as_admin, check_windivert_driver};
+use crate::capture::handle::CaptureHandle;
+use crate::capture::loop_::{capture_loop, CaptureStats};
 use crate::common::error::CaptureError;
 use serde::Serialize;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::{mpsc, Mutex};
+
+/// Capture task handle for shutdown control
+struct CaptureTask {
+    abort_handle: tokio::task::AbortHandle,
+    shutdown_tx: mpsc::Sender<()>,
+}
+
+impl CaptureTask {
+    fn shutdown(&self) {
+        self.abort_handle.abort();
+    }
+}
 
 /// Capture state (managed via Arc<Mutex<>> for thread-safe access)
 pub struct CaptureState {
@@ -10,6 +24,7 @@ pub struct CaptureState {
     packet_count: u64,
     bytes_per_second: f64,
     last_packet_time: Option<chrono::DateTime<chrono::Utc>>,
+    capture_task: Option<CaptureTask>,
 }
 
 impl Default for CaptureState {
@@ -19,6 +34,7 @@ impl Default for CaptureState {
             packet_count: 0,
             bytes_per_second: 0.0,
             last_packet_time: None,
+            capture_task: None,
         }
     }
 }
@@ -41,12 +57,11 @@ pub struct CaptureStatus {
 }
 
 /// Check if the application is running with administrator privileges and WinDivert driver is installed
-///
-/// This command allows the frontend to display appropriate UI (e.g., UAC shield icon, driver status)
-/// and guide users to restart as Administrator or download WinDivert if needed.
 #[tauri::command]
 pub async fn check_admin_privileges() -> Result<AdminStatus, String> {
-    let is_admin = is_running_as_admin().map_err(|e| e.to_string())?;
+    use crate::capture::admin::check_windivert_driver;
+
+    let is_admin = is_running_as_admin().map_err(|e| format!("Failed to check admin privileges: {}", e))?;
     let driver_found = check_windivert_driver().map_err(|e| e.to_string())?;
 
     Ok(AdminStatus {
@@ -71,26 +86,47 @@ pub async fn get_capture_status(
     })
 }
 
-/// Start packet capture (placeholder - full implementation in Plan 05)
+/// Start packet capture
 #[tauri::command]
 pub async fn start_capture(
     state: tauri::State<'_, Arc<Mutex<CaptureState>>>,
 ) -> Result<CaptureStatus, String> {
+    // Check if already capturing
+    {
+        let state_guard = state.lock().await;
+        if state_guard.is_capturing {
+            return Err("Capture is already running".to_string());
+        }
+    }
+
     // Check admin privileges first
     if !is_running_as_admin().map_err(|e| e.to_string())? {
         return Err("Application requires Administrator privileges to capture network traffic. Please restart as Administrator.".to_string());
     }
 
-    // Check WinDivert driver
-    if !check_windivert_driver().map_err(|e| e.to_string())? {
-        return Err("WinDivert driver not found. Please download WinDivert 2.2.2-A from https://reqrypt.org/windivert.html and place WinDivert.dll and WinDivert64.sys in the application directory.".to_string());
-    }
+    // Create WinDivert handle
+    let handle = CaptureHandle::new()
+        .map_err(|e| format!("Failed to initialize WinDivert: {}", e))?;
 
-    // Placeholder: Full capture loop implementation in Plan 05
-    // For now, just mark as capturing
+    // Create shutdown channel
+    let (shutdown_tx, _shutdown_rx) = mpsc::channel::<_>(1);
+
+    // Start capture loop
+    let (_packet_rx, abort_handle) = capture_loop(
+        handle.clone_handle(),
+        Some(shutdown_tx.clone()),
+    );
+
+    // Update state
     let mut state_guard = state.lock().await;
     state_guard.is_capturing = true;
     state_guard.packet_count = 0;
+    state_guard.bytes_per_second = 0.0;
+    state_guard.last_packet_time = None;
+    state_guard.capture_task = Some(CaptureTask {
+        abort_handle,
+        shutdown_tx,
+    });
 
     Ok(CaptureStatus {
         is_running: true,
@@ -100,15 +136,33 @@ pub async fn start_capture(
     })
 }
 
-/// Stop packet capture (placeholder - full implementation in Plan 05)
+/// Stop packet capture
 #[tauri::command]
 pub async fn stop_capture(
     state: tauri::State<'_, Arc<Mutex<CaptureState>>>,
 ) -> Result<CaptureStatus, String> {
-    // Placeholder: Full shutdown implementation in Plan 05
-    let mut state_guard = state.lock().await;
-    state_guard.is_capturing = false;
+    // Get capture task and shut down
+    let capture_task_opt = {
+        let mut state_guard = state.lock().await;
+        if !state_guard.is_capturing {
+            return Err("Capture is not running".to_string());
+        }
+        state_guard.is_capturing = false;
+        state_guard.capture_task.take()
+    };
 
+    if let Some(capture_task) = capture_task_opt {
+        // Send shutdown signal
+        let _ = capture_task.shutdown_tx.send(()).await;
+
+        // Give task time to shutdown gracefully
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+
+        // Abort if still running
+        capture_task.shutdown();
+    }
+
+    let state_guard = state.lock().await;
     Ok(CaptureStatus {
         is_running: false,
         packet_count: state_guard.packet_count,
