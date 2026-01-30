@@ -10,9 +10,9 @@ user_setup: []
 
 must_haves:
   truths:
-    - "Capture status types and state management implemented"
-    - "Tauri commands for capture control registered"
-    - "Commands accessible from frontend"
+    - "UI can start and stop capture"
+    - "Frontend can query capture status"
+    - "Admin status checks respond correctly"
   artifacts:
     - path: "src-tauri/src/ui/commands.rs"
       provides: "Tauri commands for capture control"
