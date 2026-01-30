@@ -55,8 +55,8 @@
 
 | Component | Responsibility | Communicates With | Typical Implementation |
 |-----------|---------------|-------------------|------------------------|
-| **Packet Capture** | Intercept network traffic from MTGO client | Filter Engine, Application | libpcap/WinPcap (C/C++) or raw sockets (Node.js/Python) |
-| **Filter Engine** | Apply BPF filters to capture only MTGO traffic | Packet Capture, Packet Parser | Kernel-space filtering via libpcap |
+| **Packet Capture** | Intercept network traffic from MTGO client | Filter Engine, Application | WinDivert (Windows) for loopback traffic capture |
+| **Filter Engine** | Apply BPF filters to capture only MTGO traffic | Packet Capture, Packet Parser | Kernel-space filtering via WinDivert |
 | **Packet Parser** | Parse raw packets into TCP/IP structures | Filter Engine, Protocol Decoder | Custom parser using packet structure definitions |
 | **MTGO Protocol Decoder** | Reverse-engineer and decode MTGO proprietary protocol | Packet Parser, Game State | State machine handling message types |
 | **Message Queue** | Buffer protocol messages for processing | Protocol Decoder, Game State | In-memory queue or persistent buffer |
@@ -600,7 +600,7 @@ class MessageParser {
 | Service | Integration Pattern | Notes |
 |---------|---------------------|-------|
 | **MTGO Client** | Network packet capture (passive interception) | No API, must reverse-engineer protocol |
-| **Operating System** | libpcap (Linux/macOS) or WinPcap/Npcap (Windows) | Requires elevated privileges |
+| **Operating System** | WinDivert (Windows) | Requires elevated privileges and driver installation |
 | **File System** | Local file I/O for replay files | Compact binary format with compression |
 
 ### Internal Boundaries
@@ -623,3 +623,4 @@ class MessageParser {
 ---
 *Architecture research for: MTGO Replay Capture System*
 *Researched: 2026-01-29*
+*Updated: 2026-01-30 - Updated for Windows-only (MTGO is Windows-only)*

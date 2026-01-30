@@ -14,9 +14,8 @@ Mistakes that cause rewrites or major issues.
 Developers assume they can capture localhost/loopback traffic the same way as network traffic, but discover that the game client communicates with servers via localhost (127.0.0.1) and their packet capture library returns nothing. Months of work building a capture system that captures zero packets.
 
 **Why it happens:**
-- Most packet capture libraries (libpcap, WinPcap) by default only capture on physical network interfaces
-- Loopback traffic never touches the physical network stack on most operating systems
-- Different operating systems handle loopback capture differently or not at all
+- Standard Windows packet capture libraries (WinPcap/Npcap) by default only capture on physical network interfaces
+- Loopback traffic never touches the physical network stack
 - MTGO client may route through localhost for some connections (e.g., local authentication or cache servers)
 
 **Consequences:**
@@ -27,32 +26,29 @@ Developers assume they can capture localhost/loopback traffic the same way as ne
 
 **Prevention:**
 1. **Early phase research:** Before writing any capture code, verify where MTGO traffic actually flows:
-   ```bash
-   # On Linux/macOS
-   sudo tcpdump -i any -n host <mtgo_server_ip>
-   # Check if you see MTGO traffic, also check for 127.0.0.1 connections
+    ```bash
+    # On Windows with Wireshark
+    # Install Npcap with loopback support enabled or use WinDivert
+    # Use Wireshark to check for MTGO traffic patterns
+    # Check if traffic appears on physical interfaces or loopback
+    ```
 
-   # On Windows with Npcap
-   # Install Npcap with loopback support enabled
-   # Use Wireshark to check "Adapter for loopback traffic capture" device
-   ```
-
-2. **Support both capture modes:**
-   - Build for physical interface capture (standard network traffic)
-   - Build for loopback capture if MTGO uses localhost
-   - Auto-detect which mode is needed at runtime
+2. **Use WinDivert for capture:**
+    - WinDivert captures both physical and loopback traffic on Windows
+    - No need to switch between capture modes
+    - Auto-detect which interfaces show MTGO traffic
 
 3. **Document MTGO's actual communication pattern:**
-   - Do packet capture during actual gameplay
-   - Document which servers MTGO connects to
-   - Document whether any traffic is loopback
-   - Note differences across MTGO client versions
+    - Do packet capture during actual gameplay
+    - Document which servers MTGO connects to
+    - Document whether any traffic is loopback
+    - Note differences across MTGO client versions
 
 **Detection:**
 - Test capture tool with actual MTGO client running (not just synthetic traffic)
 - Verify packet capture shows game-related traffic (look for MTGO server IPs or ports)
-- If you see NO packets when MTGO is running, loopback issue is likely
-- Check netstat/connections to see if MTGO is using 127.0.0.1
+- If you see NO packets when MTGO is running, check if traffic is on loopback interface
+- Use netstat/connections to see if MTGO is using 127.0.0.1
 
 **Phase to address:**
 Phase 1 (Research & Proof of Concept) - Must verify traffic paths before architecture decisions
@@ -136,9 +132,8 @@ Phase 2 (Protocol Research & Design) - Must design for version flexibility from 
 Tool works perfectly on Windows (where MTGO primarily runs), but users on Windows 10/11 can't capture anything. Or, tool fails on specific Windows versions. Capturing permissions, driver installation, or interface discovery fails silently.
 
 **Why it happens:**
-- Packet capture requires kernel-level drivers (Npcap/WinPcap on Windows, libpcap on Unix)
+- Packet capture requires kernel-level drivers (WinDivert on Windows)
 - Different Windows versions have different security requirements (UAC, driver signing, driver loading)
-- Npcap vs WinPcap compatibility issues
 - Administrator privileges required but not documented
 - Antivirus/EDR software blocks packet capture drivers
 - Modern Windows (11) has tighter driver signing requirements
@@ -153,51 +148,48 @@ Tool works perfectly on Windows (where MTGO primarily runs), but users on Window
 **Prevention:**
 
 1. **Administrator privilege detection and handling:**
-   ```python
-   import ctypes
-   import os
+    ```python
+    import ctypes
+    import os
 
-   def is_admin():
-       try:
-           return ctypes.windll.shell32.IsUserAnAdmin()
-       except:
-           return False
+    def is_admin():
+        try:
+            return ctypes.windll.shell32.IsUserAnAdmin()
+        except:
+            return False
 
-   def setup_capture():
-       if not is_admin():
-           print("Packet capture requires Administrator privileges")
-           print("Please restart as Administrator")
-           # Offer to restart with elevation
-           relaunch_as_admin()
-       else:
-           # Proceed with capture setup
-   ```
+    def setup_capture():
+        if not is_admin():
+            print("Packet capture requires Administrator privileges")
+            print("Please restart as Administrator")
+            # Offer to restart with elevation
+            relaunch_as_admin()
+        else:
+            # Proceed with capture setup
+    ```
 
 2. **Driver installation verification:**
-   ```python
-   def verify_npcap_installed():
-       # Check registry for Npcap
-       # Check for wpcap.dll in Npcap path
-       # Check for npcap service running
-       # Guide user to install if missing
-   ```
+    ```python
+    def verify_windivert_installed():
+        # Check for WinDivert64.sys in system path
+        # Check if WinDivert service is running
+        # Guide user to install if missing
+    ```
 
 3. **Graceful degradation for capture failures:**
-   - Detect when capture driver is missing/blocked
-   - Provide clear error messages with specific fixes
-   - Link to Npcap installation with correct options
-   - Test on Windows 10 and Windows 11 during development
+    - Detect when WinDivert driver is missing/blocked
+    - Provide clear error messages with specific fixes
+    - Bundle WinDivert64.sys with installer
+    - Test on Windows 10 and Windows 11 during development
 
 4. **Test matrix:**
-   - Windows 10 x64, various updates
-   - Windows 11 x64, various builds
-   - With and without antivirus/EDR enabled
-   - Different Npcap installation modes
+    - Windows 10 x64, various updates
+    - Windows 11 x64, various builds
+    - With and without antivirus/EDR enabled
 
 5. **Bundling considerations:**
-   - Cannot bundle Npcap installer directly (size, EULA)
-   - Must detect and prompt for installation
-   - Document required Npcap options (loopback support, raw 802.11 if needed)
+    - Bundle WinDivert driver with installer
+    - Document installation requirements
 
 **Detection:**
 - `pcap_open_live()` returns NULL or error
@@ -648,7 +640,7 @@ Common mistakes when connecting to external services.
 
 | Integration | Common Mistake | Correct Approach |
 |--------------|------------------|------------------|
-| **Npcap Installation** | Assume Npcap is pre-installed | Detect Npcap presence, guide user to install with correct options (loopback support) |
+| **WinDivert Installation** | Assume WinDivert is pre-installed | Bundle WinDivert driver with installer, detect presence |
 | **Card Database API** | Embed full card data in replay | Store card IDs, resolve at load time from Scryfall or bundled DB |
 | **MTGO Server Discovery** | Hardcode server IPs | Discover dynamically from DNS or initial connection, build BPF filter on-the-fly |
 | **Administrator Privileges** | Don't mention, fail silently | Detect, prompt with clear instructions, offer relaunch with elevation |

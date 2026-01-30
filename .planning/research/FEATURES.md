@@ -2,6 +2,7 @@
 
 **Domain:** MTGO Replay Capture and Game Analysis Tools
 **Researched:** January 28, 2026
+**Updated:** 2026-01-30 - Updated for Windows-only (MTGO is Windows-only)
 **Confidence:** HIGH
 
 ## Table Stakes (Users Expect These)
@@ -173,14 +174,14 @@ Features to defer until product-market fit is established.
 
 | Feature | MTGO-Tracker | Magic Online Replay Tool | Videre Tracker | Our Approach |
 |---------|--------------|------------------------|----------------|--------------|
-| **Data source** | Log file import | Replay file analysis | Real-time via MTGOSDK | Log file import + optional SDK integration |
-| **Replay capture** | Manual import only | Analyzes existing replays | Real-time capture + file import | File-based capture with future real-time option |
+| **Data source** | Log file import | Replay file analysis | Real-time via MTGOSDK | Network capture + optional SDK integration |
+| **Replay capture** | Manual import only | Analyzes existing replays | Real-time capture + file import | Automatic file-based capture |
 | **Sideboard tracking** | Not explicit | Not mentioned | Yes | **Focus feature** - automatic detection |
 | **Deck extraction** | Manual entry | Implicit in replay analysis | Automatic extraction from game state |
 | **Playback** | No playback | Limited playback mentioned | Full playback with controls |
 | **Win rate** | Basic statistics | Not explicitly mentioned | Yes | Comprehensive analytics dashboard |
-| **Real-time** | No | Yes (via MTGOSDK) | Phase 2: add SDK integration |
-| **Platform** | Windows (Python) | Windows (C#) | Windows + cross-platform exports |
+| **Real-time** | No | Yes (via MTGOSDK) | Yes (via MTGOSDK) | Future consideration |
+| **Platform** | Windows (Python) | Windows (C#) | Windows | Windows-only (MTGO is Windows-only) |
 | **Storage** | Local database | Local files | Local binary format |
 | **Active maintenance** | Last update Oct 2023 | Last update Oct 2022 | Fresh development |
 
@@ -219,13 +220,13 @@ Features to defer until product-market fit is established.
    - Personal analysis with file-based sharing (not cloud)
 
 4. **Technical considerations:**
-   - MTGO protocol is proprietary (no official documentation)
-   - SDK approach (MTGOSDK) uses memory inspection via ClrMD
-   - Log file approach is more accessible and stable
-   - Protocol reverse-engineering required for full state reconstruction
+    - MTGO protocol is proprietary (no official documentation)
+    - SDK approach (MTGOSDK) uses memory inspection via ClrMD
+    - Network capture provides automatic replay recording
+    - Protocol reverse-engineering required for full state reconstruction
 
 5. **Market positioning opportunity:**
-   - Focus on **file-based replay capture** (not just log parsing)
-   - **Sideboard extraction** as differentiator
-   - **Offline-first** with optional export/sharing
-   - **Windows-only** capture, cross-platform analysis
+    - Focus on **automatic network capture** (not just log parsing)
+    - **Sideboard extraction** as differentiator
+    - **Offline-first** with optional export/sharing
+    - **Windows-only** application (matches MTGO platform)

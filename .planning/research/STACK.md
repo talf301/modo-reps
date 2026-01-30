@@ -13,16 +13,14 @@
 | **Rust** | 1.80+ | Core language | Memory safety for network parsing, Tauri-native, excellent binary data handling ecosystem. Cross-platform compilation makes Windows/Mac/Linux support trivial. |
 | **Tauri** | 2.0 | Desktop framework | 10x smaller bundles than Electron, native performance, Rust backend with web UI. Perfect for system-level tools that need user interface. |
 | **Tokio** | 1.35+ | Async runtime | Rust's de facto async runtime, essential for non-blocking packet capture and handling multiple concurrent connections. |
-| **libpcap** | 1.10+ (system) | Packet capture (Unix/Mac) | Industry standard for network packet capture. Cross-platform, battle-tested, extensive documentation. |
-| **WinDivert** | 1.4+ | Packet capture (Windows) | Captures localhost traffic that libpcap misses. Required because MTGO traffic is loopback. |
+| **WinDivert** | 1.4+ | Packet capture (Windows) | Captures localhost traffic. Required because MTGO is Windows-only and uses loopback connections. |
 | **Serde** | 1.0+ | Serialization framework | Rust's serialization ecosystem. Type-safe, zero-cost abstractions, supports multiple formats through derive macros. |
 
 ### Supporting Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| **pcap** crate | 0.10+ | libpcap bindings | Use on macOS/Linux for packet capture. FFI bindings to libpcap system library. |
-| **windivert-sys** crate | 0.4+ | WinDivert bindings | Use on Windows to capture MTGO's localhost traffic. Requires WinDivert driver installation. |
+| **windivert-sys** crate | 0.4+ | WinDivert bindings | Windows packet capture. Captures MTGO's localhost traffic. Requires WinDivert driver installation. |
 | **rmp-serde** | 1.1+ | MessagePack + Serde | When storing replays in MessagePack format. Combines MessagePack's compactness with Serde's type safety. |
 | **bincode** | 1.3+ | Binary serialization | Alternative to MessagePack. Smaller binary size but less human-readable debugging. |
 | **thiserror** | 1.0+ | Error handling | Custom error types with Display/Error traits. Essential for user-friendly error messages in RE tools. |
@@ -45,11 +43,7 @@ cargo add tauri --features all
 cargo add tokio --features full
 cargo add serde --features derive
 
-# Network capture (platform-specific)
-# For Linux/macOS:
-cargo add pcap
-
-# For Windows:
+# Network capture (Windows only)
 cargo add windivert-sys
 
 # Serialization
@@ -65,12 +59,6 @@ cargo add tracing-subscriber --features fmt,env-filter
 
 **Windows Setup Note:**
 WinDivert requires driver installation. Users will need admin privileges. Bundle WinDivert64.sys with installer.
-
-**macOS Setup Note:**
-Packet capture requires entitlements. Add `com.apple.security.network.client` and `com.apple.security.network.server` to Info.plist.
-
-**Linux Setup Note:**
-Packet capture requires CAP_NET_RAW capability. Set with: `sudo setcap cap_net_raw,cap_net_admin=eip /path/to/binary`
 
 ## Alternatives Considered
 
@@ -88,24 +76,19 @@ Packet capture requires CAP_NET_RAW capability. Set with: `sudo setcap cap_net_r
 |-------|-----|-------------|
 | **Pure Node.js** | Single-threaded event loop can't handle high-volume packet capture without dropping packets. No access to raw sockets without native modules. | Rust backend with Tokio async runtime |
 | **Go** | Great language, but Tauri requires Rust. Go's goroutines would be nice, but interop complexity not worth it. | Rust with Tokio |
-| **Windows-only libraries** (e.g., Raw Sockets API) | Limits cross-platform support. MTGO has Mac/Linux users too. | libpcap (Unix) + WinDivert (Windows) abstraction layer |
+| **Raw Sockets API** | WinDivert is better for loopback traffic capture, which MTGO uses. | WinDivert on Windows |
 | **Screen recording** (OBS, FRAPS) | Huge file sizes (GB/hr vs MB/hr). Can't extract structured data like card IDs, player info. Requires manual transcription. | Network packet capture + protocol parsing |
 | **Man-in-the-middle proxy** | TLS interception requires certificate pinning bypass. MTGO client validates certs. More complex than packet capture. | Direct packet capture (no decryption needed if protocol isn't TLS) |
 | **Old versions of Tauri (1.x)** | Missing 2.0 features: better mobile support, improved security model, better plugin system. | Tauri 2.0 |
-| **Scapy for production capture** | Python GIL prevents parallel packet processing. Too slow for real-time analysis. | Rust pcap crate with tokio channels |
+| **Scapy for production capture** | Python GIL prevents parallel packet processing. Too slow for real-time analysis. | Rust windivert-sys with tokio channels |
 | **Plain JSON for replays** | File size 3-5x larger than binary formats. Slower to parse. Poor for long games (hundreds of turns). | MessagePack or Bincode |
 
 ## Stack Patterns by Variant
 
-**If capturing on Windows (MTGO primary platform):**
+**Capture (Windows only):**
 - Use `windivert-sys` for capture
-- Because: libpcap on Windows (WinPcap) misses localhost traffic
+- Because: MTGO is Windows-only and WinDivert captures localhost traffic better than alternatives
 - Note: WinDivert requires admin privileges and driver installation
-
-**If capturing on macOS/Linux:**
-- Use `pcap` crate (libpcap bindings)
-- Because: Standard Unix packet capture API, no additional drivers needed
-- Note: May require `sudo` or capabilities for raw socket access
 
 **If protocol is encrypted (TLS):**
 - Use Frida or SSLKEYLOGFILE
@@ -123,7 +106,6 @@ Packet capture requires CAP_NET_RAW capability. Set with: `sudo setcap cap_net_r
 |-----------|-----------------|-------|
 | Tauri 2.0 | Rust 1.70+ | Minimum supported Rust version. Recommend 1.75+ for latest features. |
 | Tokio 1.35+ | Rust 1.70+ | Tokio's MSRV matches Tauri. |
-| pcap crate | libpcap 1.8+ on system | System library must be installed separately on Linux (`libpcap-dev`). |
 | windivert-sys | Windows 7+ | WinDivert driver requires Windows 7 or later. 64-bit only. |
 | rmp-serde 1.1+ | Serde 1.0+ | Compatible with latest serde derive macros. |
 
@@ -143,4 +125,5 @@ Packet capture requires CAP_NET_RAW capability. Set with: `sudo setcap cap_net_r
 ---
 *Stack research for: MTGO Replay Capture*
 *Researched: 2026-01-29*
+*Updated: 2026-01-30 - Removed Unix/Mac support (MTGO is Windows-only)*
 *Confidence: MEDIUM - Core stack verified from official sources, but protocol-specific tools may need adjustment based on MTGO's actual protocol characteristics*

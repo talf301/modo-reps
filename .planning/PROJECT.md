@@ -36,11 +36,11 @@ MTGO's built-in replay system has been non-functional for over a year, leaving p
 
 ## Constraints
 
-- **Tech**: Must intercept network traffic on local machine — requires appropriate permissions
+- **Tech**: Must intercept network traffic on local Windows machine — requires appropriate permissions
 - **Protocol**: MTGO protocol is undocumented and proprietary — requires reverse engineering
 - **Format**: Replay files must be compact and portable for easy sharing
 - **Compatibility**: Must work with current MTGO client (protocol may change)
-- **Platform**: Desktop application (user's local machine), not cloud-based
+- **Platform**: Windows-only desktop application (MTGO is Windows-only), not cloud-based
 
 ## Key Decisions
 
@@ -51,3 +51,4 @@ MTGO's built-in replay system has been non-functional for over a year, leaving p
 
 ---
 *Last updated: 2025-01-28 after initialization*
+*Updated: 2026-01-30 - Updated for Windows-only (MTGO is Windows-only)*

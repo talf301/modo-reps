@@ -18,17 +18,15 @@ Key risks center on MTGO's undocumented protocol and Windows platform constraint
 MTGO replay capture requires memory-safe binary parsing with platform-specific packet capture. Rust 1.80+ is recommended for core language due to its memory safety for network parsing, Tauri-native framework, excellent binary data handling ecosystem, and trivial cross-platform compilation. Tauri 2.0 provides 10x smaller bundles than Electron with native performance. Platform-specific capture is critical: WinDivert 1.4+ for Windows (required because libpcap/WinPcap misses localhost traffic), and libpcap 1.10+ for Unix/Mac. Tokio 1.35+ handles non-blocking packet capture and concurrent connections. Serde 1.0+ with MessagePack (rmp-serde) or Bincode provides compact binary serialization for replay storage.
 
 **Core technologies:**
-- **Rust 1.80+**: Core language — Memory safety for binary parsing, cross-platform, Tauri-native
+- **Rust 1.80+**: Core language — Memory safety for binary parsing, Tauri-native
 - **Tauri 2.0**: Desktop framework — 10x smaller than Electron, native performance, system-level tool capability
 - **Tokio 1.35+**: Async runtime — Non-blocking packet capture, concurrent connection handling
-- **WinDivert 1.4+** (Windows): Packet capture — Captures localhost traffic libpcap misses (MTGO uses loopback)
-- **libpcap 1.10+** (Unix/Mac): Packet capture — Industry standard for network interception
+- **WinDivert 1.4+** (Windows): Packet capture — Captures localhost traffic (MTGO is Windows-only)
 - **Serde + MessagePack**: Serialization — Type-safe, compact binary format for replay storage
 
 **Version requirements:**
 - Rust 1.75+ recommended for latest features (Tauri 2.0 MSRV: 1.70+)
 - WinDivert requires Windows 7+, 64-bit only, admin privileges, driver installation
-- Npcap on Windows must be installed with loopback support enabled
 
 ### Expected Features
 
@@ -64,7 +62,7 @@ MTGO replay tools have clear table stakes, competitive differentiators, and anti
 MTGO replay capture uses a layered architecture with clear separation between capture, protocol, and application logic. This standard pattern isolates protocol complexity, enables testing each layer independently, and allows optimization of different parts independently. The system flows from MTGO client network traffic through capture (WinDivert/libpcap), filtering (BPF), parsing (TCP/IP structures), protocol decoding (state machine), message queuing (bounded for backpressure), game state reconstruction (event-driven), and replay serialization (compressed binary format). Event-driven architecture handles high-frequency packet bursts, while state machine pattern tracks connection state and game phases. Producer-consumer pattern prevents memory exhaustion when capture speed exceeds processing speed.
 
 **Major components:**
-1. **Capture Layer** — Intercept network traffic from MTGO client using platform-specific drivers (WinDivert on Windows, libpcap on Unix/Mac), apply BPF filters for MTGO traffic
+1. **Capture Layer** — Intercept network traffic from MTGO client using WinDivert (Windows-only), apply BPF filters for MTGO traffic
 2. **Protocol Layer** — Reverse-engineer and decode MTGO proprietary protocol using state machine, parse TCP/IP structures, buffer messages in bounded queue
 3. **Application Layer** — Maintain game state from protocol messages (event-driven state machine), track sideboard operations between games, serialize states into compact replay format
 4. **Presentation Layer** — Desktop application UI (Tauri 2.0) for capture controls, status monitoring, configuration, and future replay viewing
@@ -95,7 +93,7 @@ Based on research, suggested phase structure follows dependency order: capture i
 
 ### Phase 1: Capture Infrastructure & Proof of Concept
 **Rationale:** Packet capture is the foundation—without capturing MTGO traffic, nothing else is possible. Must verify traffic paths (loopback vs physical interface) early to avoid loopback capture blindness. Must test on clean Windows installs to avoid platform-specific capture failures.
-**Delivers:** Working packet capture on Windows with MTGO traffic visible, BPF filtering for MTGO servers, basic packet parser extracting TCP/IP payload, admin privilege detection, Npcap/WinDivert driver verification.
+**Delivers:** Working packet capture on Windows with MTGO traffic visible, BPF filtering for MTGO servers, basic packet parser extracting TCP/IP payload, admin privilege detection, WinDivert driver verification.
 **Addresses:** Replay capture (FEATURES), Match metadata (partial)
 **Avoids:** Loopback traffic capture blindness, Platform-specific capture failures
 **Research flag:** HIGH complexity — protocol reverse-engineering requires `/gsd-research-phase` during planning
@@ -215,4 +213,5 @@ No Context7 library was used for this research. All findings from official docum
 
 ---
 *Research completed: 2026-01-29*
+*Updated: 2026-01-30 - Updated for Windows-only (MTGO is Windows-only, removed Unix/Mac references)*
 *Ready for roadmap: yes*
