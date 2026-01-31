@@ -16,7 +16,7 @@ pub enum CaptureError {
     DriverBlocked,
 
     #[error("Failed to initialize WinDivert handle: {0}")]
-    WinDivertInitFailed(#[from] windivert::error::Error),
+    WinDivertInitFailed(#[from] windivert::error::WinDivertError),
 
     #[error("Packet capture channel error: {0}")]
     ChannelError(String),

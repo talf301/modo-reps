@@ -147,3 +147,16 @@ function updateCaptureStatusDisplay() {
     <p>Last Packet: <strong>${lastPacket}</strong></p>
   `;
 }
+
+// Set up event listeners for buttons after DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  const startBtn = document.getElementById('start-capture-btn');
+  const stopBtn = document.getElementById('stop-capture-btn');
+
+  if (startBtn) {
+    startBtn.addEventListener('click', startCapture);
+  }
+  if (stopBtn) {
+    stopBtn.addEventListener('click', stopCapture);
+  }
+});

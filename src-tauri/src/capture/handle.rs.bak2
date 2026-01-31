@@ -1,4 +1,4 @@
-#[cfg(target_os = "windows")]
+#[cfg(target_os = "windows")]#[cfg(target_os = "windows")]
 use windivert::prelude::*;
 use crate::capture::filter::MTGO_FILTER;
 use crate::common::error::CaptureError;
@@ -45,12 +45,12 @@ impl CaptureHandle {
             ));
         }
 
-        // Create WinDivert handle with network layer constructor
-        let handle = WinDivert::network(
-            MTGO_FILTER,  // Apply MTGO traffic filter
-            0,            // Priority
-            Default::default(),  // Packet sniffing: copy, don't drop packets
-        )?;
+        // Build WinDivert handle with typestate pattern
+        let handle = WinDivert::builder()
+            .layer(Network::Network)  // WINDIVERT_LAYER_NETWORK
+            .filter(MTGO_FILTER)      // Apply MTGO traffic filter
+            .flags(WinDivertFlags::SNIFF)  // Packet sniffing: copy, don't drop packets
+            .build()?;  // This validates filter syntax and creates handle
 
         Ok(CaptureHandle {
             inner: Arc::new(handle),

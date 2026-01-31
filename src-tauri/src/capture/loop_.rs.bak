@@ -5,7 +5,7 @@ use windivert::prelude::*;
 use crate::common::error::CaptureError;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::mpsc;
 use tracing::{debug, error, info, warn};
 
 /// Channel capacity for packet capture (PERF-004)
@@ -53,7 +53,7 @@ pub struct CaptureStats {
 #[cfg(target_os = "windows")]
 pub fn capture_loop(
     handle: Arc<WinDivert<NetworkLayer>>,
-    shutdown_tx: broadcast::Sender<()>,
+    shutdown_tx: Option<mpsc::Sender<()>>,
 ) -> (mpsc::Receiver<CapturedPacket>, tokio::task::AbortHandle) {
     // Create bounded channel for packet flow (PERF-004)
     let (packet_tx, packet_rx) = mpsc::channel::<CapturedPacket>(CHANNEL_CAPACITY);
@@ -63,36 +63,30 @@ pub fn capture_loop(
         info!("Packet capture loop started (channel capacity: {})", CHANNEL_CAPACITY);
 
         let mut stats = CaptureStats::default();
-        let mut shutdown_rx = shutdown_tx.subscribe();
+        let mut shutdown_rx = shutdown_tx.map(|tx| tx.subscribe());
         let mut last_throughput_check = Instant::now();
         let mut bytes_at_last_check = 0u64;
 
         loop {
             // Check for shutdown signal
-            if shutdown_rx.try_recv().is_ok() {
-                info!("Shutdown signal received, stopping capture");
-                break;
+            if let Some(rx) = &mut shutdown_rx {
+                if rx.try_recv().is_ok() {
+                    info!("Shutdown signal received, stopping capture");
+                    break;
+                }
             }
 
             // Receive packet from WinDivert (with timeout for shutdown check)
-            // Need to use spawn_blocking with the buffer and handle
-            let handle_clone = Arc::clone(&handle);
-            let recv_result = tokio::task::spawn_blocking(move || {
-                let mut buffer = Box::new([0u8; 1500]);
-                handle_clone.recv_wait(&mut *buffer, 100).map(|opt| opt.map(|p| {
-                    // Convert packet data to owned Vec
-                    WinDivertPacket {
-                        address: p.address,
-                        data: std::borrow::Cow::from(p.data.to_vec()),
-                    }
-                }))
-            }).await;
-            
-            match recv_result {
-                Ok(Ok(Some(packet))) => {
+            let packet_result = tokio::time::timeout(
+                Duration::from_millis(100),
+                handle.recv(),
+            ).await;
+
+            match packet_result {
+                Ok(Ok((packet, address))) => {
                     // Capture successful
                     let timestamp = chrono::Utc::now();
-                    let length = packet.data.len();
+                    let length = packet.len();
 
                     // Update statistics
                     stats.packet_count += 1;
@@ -101,7 +95,7 @@ pub fn capture_loop(
 
                     // Create captured packet structure
                     let captured = CapturedPacket {
-                        data: packet.data.to_vec(),
+                        data: packet.to_vec(),
                         timestamp,
                         length,
                     };
@@ -153,17 +147,13 @@ pub fn capture_loop(
                         last_throughput_check = Instant::now();
                     }
                 }
-                Ok(Ok(None)) => {
-                    // Timeout - continue loop (allows shutdown check)
-                    continue;
-                }
                 Ok(Err(e)) => {
                     error!("Error receiving packet: {}", e);
                     break;
                 }
-                Err(e) => {
-                    error!("Task join error: {}", e);
-                    break;
+                Err(_) => {
+                    // Timeout - continue loop (allows shutdown check)
+                    continue;
                 }
             }
         }
@@ -192,7 +182,7 @@ pub struct CaptureStats;
 #[cfg(not(target_os = "windows"))]
 pub fn capture_loop(
     _handle: (),
-    _shutdown_tx: (),
+    _shutdown_tx: Option<tokio::sync::mpsc::Sender<()>>,
 ) -> (tokio::sync::mpsc::Receiver<CapturedPacket>, tokio::task::AbortHandle) {
     let (tx, rx) = tokio::sync::mpsc::channel(1);
     let handle = tokio::spawn(async move {

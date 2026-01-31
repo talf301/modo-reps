@@ -1,19 +1,21 @@
 use crate::capture::admin::{is_running_as_admin, check_windivert_driver};
 use crate::capture::handle::CaptureHandle;
-use crate::capture::loop_::{capture_loop, CaptureStats};
-use crate::common::error::CaptureError;
+use crate::capture::loop_::capture_loop;
 use serde::Serialize;
 use std::sync::Arc;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::{broadcast, Mutex};
 
 /// Capture task handle for shutdown control
 struct CaptureTask {
     abort_handle: tokio::task::AbortHandle,
-    shutdown_tx: mpsc::Sender<()>,
+    shutdown_tx: broadcast::Sender<()>,
 }
 
 impl CaptureTask {
     fn shutdown(&self) {
+        // Send shutdown signal via broadcast channel
+        let _ = self.shutdown_tx.send(());
+        // Also abort the task
         self.abort_handle.abort();
     }
 }
@@ -109,12 +111,14 @@ pub async fn start_capture(
         .map_err(|e| format!("Failed to initialize WinDivert: {}", e))?;
 
     // Create shutdown channel
-    let (shutdown_tx, _shutdown_rx) = mpsc::channel::<_>(1);
+    let (shutdown_tx, _shutdown_rx) = broadcast::channel(1);
+    let shutdown_tx_for_capture = shutdown_tx.clone();
+    let shutdown_tx = shutdown_tx.clone();
 
     // Start capture loop
     let (_packet_rx, abort_handle) = capture_loop(
         handle.clone_handle(),
-        Some(shutdown_tx.clone()),
+        shutdown_tx_for_capture,
     );
 
     // Update state
@@ -153,7 +157,7 @@ pub async fn stop_capture(
 
     if let Some(capture_task) = capture_task_opt {
         // Send shutdown signal
-        let _ = capture_task.shutdown_tx.send(()).await;
+        let _ = capture_task.shutdown_tx.send(());
 
         // Give task time to shutdown gracefully
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
