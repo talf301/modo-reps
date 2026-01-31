@@ -1,6 +1,3 @@
-#[cfg(target_os = "windows")]
-use windows::Win32::Security::*;
-use windows::Win32::Foundation::HANDLE;
 use crate::common::error::CaptureError;
 use std::path::PathBuf;
 

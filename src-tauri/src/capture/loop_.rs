@@ -1,8 +1,5 @@
 #[cfg(target_os = "windows")]
-use crate::capture::handle::CaptureHandle;
-#[cfg(target_os = "windows")]
 use windivert::prelude::*;
-use crate::common::error::CaptureError;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{broadcast, mpsc};
